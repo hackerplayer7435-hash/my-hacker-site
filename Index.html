@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hacker UI â Naveen</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050608;
+    --neon:#00ff88;
+    --muted:#7b8a8f;
+    --accent:#7df3b5;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  body{
+    background: radial-gradient(ellipse at 20% 10%, rgba(0,255,136,0.03), transparent 10%),
+                radial-gradient(ellipse at 80% 90%, rgba(0,150,255,0.02), transparent 10%),
+                var(--bg);
+    color:var(--accent);
+    overflow:hidden;
+  }
+
+  /* MATRIX LINES */
+  .matrix {
+    position:fixed; inset:0; z-index:0; pointer-events:none; mix-blend-mode:screen;
+    display:block;
+  }
+  canvas{width:100%;height:100%}
+
+  /* CENTER CARD */
+  .wrap{
+    position:relative; z-index:3;
+    height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+
+  .card{
+    width:min(980px,94%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(0,255,136,0.06);
+    box-shadow:0 10px 40px rgba(0,0,0,0.6);
+    border-radius:12px; padding:28px; position:relative; overflow:hidden;
+    backdrop-filter: blur(6px);
+  }
+
+  /* top bar like terminal */
+  .topbar{
+    display:flex; align-items:center; gap:12px; margin-bottom:18px;
+    color:var(--muted); font-family:'Share Tech Mono', monospace; font-size:13px;
+  }
+  .dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.06);display:inline-block}
+  .dot.red{background:#ff5f56}
+  .dot.yellow{background:#ffbd2e}
+  .dot.green{background:#27c93f}
+
+  /* large title area */
+  .terminal{
+    font-family:'Share Tech Mono', monospace;
+    color:var(--neon);
+    font-size:20px;
+    min-height:120px;
+    display:flex; align-items:center;
+    gap:16px;
+  }
+
+  .screen{
+    padding:18px; border-radius:8px;
+    background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(255,255,255,0.02));
+    border:1px solid rgba(0,255,136,0.06);
+    width:100%;
+    box-sizing:border-box;
+    position:relative;
+  }
+
+  /* typing cursor */
+  .typed { display:inline-block; white-space:nowrap; }
+  .cursor {
+    display:inline-block; width:10px; height:20px; background:var(--neon); margin-left:6px;
+    vertical-align:middle; animation:blink 700ms steps(1) infinite;
+    transform-origin:center;
+  }
+  @keyframes blink { 50% { opacity:0 } }
+
+  /* small status line */
+  .status{
+    margin-top:14px; font-size:13px; color:var(--muted);
+    display:flex; justify-content:space-between; gap:12px; align-items:center;
+  }
+
+  .progress{
+    height:8px; background:rgba(255,255,255,0.03); border-radius:6px; overflow:hidden;
+    width:40%;
+  }
+  .progress > i{
+    display:block; height:100%; width:0%; background:linear-gradient(90deg, rgba(0,255,136,0.18), rgba(0,255,136,0.9));
+    box-shadow:0 0 16px rgba(0,255,136,0.08); transition:width 600ms cubic-bezier(.2,.9,.2,1);
+  }
+
+  /* reveal hacked message with glitch */
+  .hacked{
+    margin-top:18px; font-family:'Share Tech Mono', monospace;
+    font-size:34px; color:var(--neon); letter-spacing:0.6px;
+    text-align:center; display:none;
+  }
+  .glitch{
+    position:relative; display:inline-block;
+  }
+  .glitch::before, .glitch::after {
+    content:attr(data-text);
+    position:absolute; left:0; top:0; width:100%;
+    clip-path:rect(0,9999px,0,0);
+    opacity:0.85;
+  }
+  .glitch::before { transform:translate(-2px,-1px); color:#7df3b5; mix-blend-mode:screen; animation:glitch-1 2.7s infinite linear; }
+  .glitch::after  { transform:translate(2px,1px); color:#00a86b; mix-blend-mode:screen; animation:glitch-2 3.1s infinite linear; }
+  @keyframes glitch-1 {
+    0%{clip-path:rect(0,9999px,0,0)}
+    10%{clip-path:rect(0,9999px,30px,0)}
+    20%{clip-path:rect(10px,9999px,40px,0)}
+    30%{clip-path:rect(0,9999px,0,0)}
+    40%{clip-path:rect(20px,9999px,80px,0)}
+    100%{clip-path:rect(0,9999px,0,0)}
+  }
+  @keyframes glitch-2 {
+    0%{clip-path:rect(0,9999px,0,0)}
+    15%{clip-path:rect(0,9999px,40px,0)}
+    35%{clip-path:rect(0,9999px,10px,0)}
+    60%{clip-path:rect(30px,9999px,100px,0)}
+    100%{clip-path:rect(0,9999px,0,0)}
+  }
+
+  /* footer small */
+  .meta{ margin-top:12px; text-align:center; color:rgba(125,243,181,0.16); font-size:12px; }
+  /* responsive */
+  @media (max-width:560px){
+    .terminal{font-size:16px}
+    .hacked{font-size:26px}
+  }
+</style>
+</head>
+<body>
+
+<!-- canvas for matrix effect -->
+<div class="matrix"><canvas id="matrix"></canvas></div>
+
+<div class="wrap">
+  <div class="card" role="main" aria-live="polite">
+    <div class="topbar" aria-hidden="true">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span style="opacity:.6">hacker-ui.local â session init</span>
+    </div>
+
+    <div class="screen">
+      <div class="terminal" aria-hidden="true">
+        <div style="flex:1">
+          <div style="font-size:13px; color:var(--muted); margin-bottom:6px">LOADING PROFILE</div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="min-width:60px; font-size:12px; color:var(--muted)">user:</div>
+            <div style="flex:1">
+              <span class="typed" id="typed-text" aria-atomic="true"></span><span class="cursor" id="cursor" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status" aria-hidden="true">
+        <div>Initializing secure tunnel...</div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div class="progress" aria-hidden="true"><i id="progress-bar"></i></div>
+          <div style="font-family:Share Tech Mono, monospace; font-size:12px; color:var(--muted)">v0.9</div>
+        </div>
+      </div>
+
+      <div class="hacked" id="hacked" role="status" aria-live="assertive">
+        <span class="glitch" id="hacked-text" data-text="you are hacked.">you are hacked.</span>
+      </div>
+
+      <div class="meta">visual demo â¢ hacker aesthetic â¢ no actions performed</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* MATRIX BACKGROUND */
+(function(){
+  const canvas = document.getElementById('matrix');
+  const ctx = canvas.getContext('2d');
+  let width, height, cols, yPos;
+  function resize(){
+    width = canvas.width = innerWidth;
+    height = canvas.height = innerHeight;
+    cols = Math.floor(width / 14);
+    yPos = new Array(cols).fill(0).map(()=> Math.random() * height);
+  }
+  function draw(){
+    ctx.fillStyle = 'rgba(5,6,8,0.15)';
+    ctx.fillRect(0,0,width,height);
+    ctx.fillStyle = 'rgba(0,255,136,0.12)';
+    ctx.font = '12px "Share Tech Mono", monospace';
+    for (let i=0;i<cols;i++){
+      const text = String.fromCharCode(0x30A0 + Math.random()*96);
+      const x = i * 14;
+      ctx.fillText(text, x, yPos[i]);
+      if (yPos[i] > height && Math.random() > 0.975) yPos[i] = 0;
+      yPos[i] += 14 + Math.random()*6;
+    }
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  setInterval(draw, 50);
+})();
+
+/* TYPER + PROGRESS + REVEAL */
+(function(){
+  const name = 'SONET SONY';
+  const target = document.getElementById('typed-text');
+  const cursor = document.getElementById('cursor');
+  const progress = document.getElementById('progress-bar');
+  const hackedEl = document.getElementById('hacked');
+
+  // type effect
+  let i = 0;
+  function typeChar(){
+    if (i < name.length){
+      target.textContent += name[i++];
+      progress.style.width = ((i / name.length) * 60 + 10) + '%';
+      setTimeout(typeChar, 180 + Math.random()*120);
+    } else {
+      // small pause then reveal "you are hacked."
+      cursor.style.opacity = '0';
+      progress.style.width = '100%';
+      setTimeout(showHacked, 700);
+    }
+  }
+  function showHacked(){
+    // show hacked text with small animated entrance
+    hackedEl.style.display = 'block';
+    hackedEl.style.opacity = 0;
+    hackedEl.style.transform = 'translateY(6px)';
+    hackedEl.animate([
+      {opacity:0, transform:'translateY(6px) scale(.98)'},
+      {opacity:1, transform:'translateY(0) scale(1)'}
+    ], {duration:420, easing:'cubic-bezier(.2,.9,.2,1)', fill:'forwards'});
+    // type terminal log lines after reveal
+    writeTerminalLogs();
+  }
+
+  // optional terminal log simulation (harmless)
+  function writeTerminalLogs(){
+    const logs = [
+      '[ok] user profile loaded',
+      '[ok] checking permissions',
+      '[!] suspicious activity detected',
+      '[done] session compromised'
+    ];
+    let idx = 0;
+    const screen = document.querySelector('.screen');
+    function pushLine(){
+      if (idx >= logs.length) return;
+      const p = document.createElement('div');
+      p.style.fontFamily = 'Share Tech Mono, monospace';
+      p.style.fontSize = '13px';
+      p.style.color = 'rgba(125,243,181,0.9)';
+      p.style.marginTop = '6px';
+      p.textContent = logs[idx++];
+      screen.appendChild(p);
+      screen.scrollTop = screen.scrollHeight;
+      setTimeout(pushLine, 700 + Math.random()*700);
+    }
+    setTimeout(pushLine, 350);
+  }
+
+  // start sequence with slight boot feel
+  setTimeout(()=>{
+    // flash progress briefly
+    progress.style.width = '6%';
+    setTimeout(typeChar, 450);
+  }, 500);
+})();
+
+/* SMALL A11Y: allow pressing space to re-run animation (for demo) */
+(function(){
+  // re-run by pressing "r" (for demonstration)
+  document.addEventListener('keydown', (e)=>{
+    if (e.key.toLowerCase()==='r'){
+      location.reload();
+    }
+  });
+})();
+</script>
+</body>
+</html>
